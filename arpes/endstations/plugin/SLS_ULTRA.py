@@ -3,10 +3,10 @@ import h5py
 import numpy as np
 import xarray as xr
 
-from arpes.endstations import HemisphericalEndstation, SynchrotronEndstation, EndstationBase
-from arpes.utilities import unwrap_xarray_item
+from arpes.endstations import HemisphericalEndstation, SynchrotronEndstation
 
 __all__ = ("SLSUltraEndstation",)
+
 
 class SLSUltraEndstation(HemisphericalEndstation, SynchrotronEndstation):
     """Implements loading h5 files from the SIS beamline."""
@@ -17,9 +17,8 @@ class SLSUltraEndstation(HemisphericalEndstation, SynchrotronEndstation):
         "SIS_SLS"
     ]
     _TOLERATED_EXTENSIONS = {
-        ".h5",".zip"
+        ".h5", ".zip"
     }
-
 
     RENAME_COORDS = {
         "X": "x",
@@ -40,9 +39,9 @@ class SLSUltraEndstation(HemisphericalEndstation, SynchrotronEndstation):
         "hv"
     }
 
-    def print_m(self, *messages) :
+    def print_m(self, *messages):
         """ Print message to console, adding the dataloader name. """
-        s = '[Dataloader {}]'.format(self.PRINCIPLE_NAME)
+        s = '[Dataloader {}]'.format(self.PRINCIPAL_NAME)
         print(s, *messages)
 
     def resolve_frame_locations(self, scan_desc: dict = None):
@@ -55,28 +54,30 @@ class SLSUltraEndstation(HemisphericalEndstation, SynchrotronEndstation):
 
         f = h5py.File(frame_path, 'r')
 
-        dataset_contents = dict()
-
         # Extract the actual dataset and some metadata
         h5_data = f['Electron Analyzer/Image Data']
         h5_info = f['Other Instruments']
 
         # Get all attributes from h5 file
         attributes = {}
+        # Add Image data attributes
         attributes.update(h5_data.attrs.items())
+        # Add attributes from metadata in 'Other Instruments'
         for a in h5_info.keys():
             attr_data = h5_info.get(a)
+            # Exclude fields that are are coordinates, but still add the attached attributes later
             if a not in self.COORDINATES:
                 v = attr_data[0]
                 attr = {a: v}
                 attributes.update(attr)
-            h5_sub_info = f['Other Instruments/'+a]
+            # Iterate and add Groups in 'Other Instruments'
+            h5_sub_info = f['Other Instruments/' + a]
             attr = list(h5_sub_info.attrs.items())
             # Problem of same naming convention, rewriting the name and make it consistent with corr. group
-            for i in attr:
-                iter = list(i)
-                iter[0] = a + ' ' + iter[0]
-                mod_attr = {iter[0]: iter[1]}
+            for attr_item in attr:
+                attr_list = list(attr_item)
+                attr_list[0] = a + ' ' + attr_list[0]
+                mod_attr = {attr_list[0]: attr_list[1]}
                 attributes.update(mod_attr)
 
         # Initialize coordinate dictionary
@@ -101,21 +102,22 @@ class SLSUltraEndstation(HemisphericalEndstation, SynchrotronEndstation):
         y_attr = h5_data.attrs['Axis1.Scale']
         y_lims = [y_attr[0], y_attr[0] + y_attr[1] * shape[1]]
         y_axis = np.linspace(*y_lims, shape[1])
-        # Add Tilt axis for FS (3D data) scans
-        if len(shape) == 3:
-            tilt_attr = h5_data.attrs['Axis2.Scale']
-            tilt_lims = [tilt_attr[0], tilt_attr[0] + tilt_attr[1] * shape[2]]
-            tilt_axis = np.linspace(*tilt_lims, shape[2])
 
         # Build xArray of EDC or 2D data
         if len(shape) == 2:
             axis_coords = {"eV": e_axis, "phi": y_axis}
             dims = ["eV", "phi"]
         # Create xArray of maps etc or 3D scans in general
-        else:
-            coordinates.pop("Tilt")
+        elif len(shape) == 3:
+            # Add Tilt axis for FS (3D data) scans
+            tilt_attr = h5_data.attrs['Axis2.Scale']
+            tilt_lims = [tilt_attr[0], tilt_attr[0] + tilt_attr[1] * shape[2]]
+            tilt_axis = np.linspace(*tilt_lims, shape[2])
             axis_coords = {"eV": e_axis, "phi": y_axis, "tilt": tilt_axis}
             dims = ["eV", "phi", "tilt"]
+        else:
+            axis_coords = {}
+            dims = []
 
         coordinates.update(axis_coords)
 
@@ -150,7 +152,7 @@ class SLSUltraEndstation(HemisphericalEndstation, SynchrotronEndstation):
             workfunction = data.attrs['Work Function (eV)']
             if data.attrs['Energy Scale'] == "Kinetic":
                 photon_energy = data.attrs['Excitation Energy (eV)']
-                data.coords["eV"]= data.eV + workfunction - photon_energy
+                data.coords["eV"] = data.eV + workfunction - photon_energy
 
         # Add manipulator coordinates (not changeable at SLS)
         data.coords["alpha"] = np.nan
