@@ -147,11 +147,11 @@ class SLSUltraEndstation(HemisphericalEndstation, SynchrotronEndstation):
         # Rename the coordinates as defined above in class
         data = data.rename({k: v for k, v in self.RENAME_COORDS.items() if k in data.coords.keys()})
 
-        # Check if scan was don in E_kin or E_bin reference and transform to E_bin if necessary
+        # Check if scan was done in E_kin or E_bin reference and transform to E_bin if necessary
         if "eV" in data.coords:
             workfunction = data.attrs['Work Function (eV)']
             if data.attrs['Energy Scale'] == "Kinetic":
-                photon_energy = data.attrs['Excitation Energy (eV)']
+                photon_energy = data.coords["hv"]
                 data.coords["eV"] = data.eV + workfunction - photon_energy
 
         # Add manipulator coordinates (not changeable at SLS)
