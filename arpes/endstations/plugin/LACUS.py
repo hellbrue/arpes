@@ -27,17 +27,17 @@ class LACUSEndstation(HemisphericalEndstation, SingleFileEndstation):
 
     RENAME_COORDS = {
         "Angle" : "phi",
-        "Ekin" : "eV"
+        "Ekin" : "eV",
         # "X": "x",
         # "Y": "y",
         # "Z": "z",
         # "Phi": "chi",
-        # "Theta": "theta",
+        # "Theta" : "theta"
     }
 
     COORDINATES = {
         "Angle",
-        "Ekin"
+        "Ekin",
         # "X",
         # "Y",
         # "Z",
@@ -58,7 +58,6 @@ class LACUSEndstation(HemisphericalEndstation, SingleFileEndstation):
         data_set = xr.open_dataset(frame_path, engine="h5netcdf")
         # Doing conversion to Dataset in lacus specsanalyzer script so below is redundant now
         # data_set = data_array.to_dataset(name="spectrum")
-
         return data_set
 
     def postprocess(self, frame: xr.Dataset):
@@ -67,19 +66,36 @@ class LACUSEndstation(HemisphericalEndstation, SingleFileEndstation):
     def postprocess_final(self, data: xr.Dataset, scan_desc: dict = None):
         """Perform final changes to convention and conversions for data taken at LACUS
         """
-
+        # Rename the coordinates as defined above in class
         data = data.rename({k: v for k, v in self.RENAME_COORDS.items() if k in data.coords.keys()})
 
+        # Check if scan was done in E_kin or E_bin reference and transform to E_bin if necessary
+        if "eV" in data.coords:
+            workfunction = data.attrs['Work Function (eV)']
+            photon_energy = data.coords["hv"]
+            data.coords["eV"] = data.eV + workfunction - photon_energy
+
         # Add manipulator coordinates (no access yet)
-        data.coords["beta"] = np.nan
-        data.coords["alpha"] = np.nan
-        data.coords["psi"] = np.nan
-        data.coords["x"] = np.nan
-        data.coords["y"] = np.nan
-        data.coords["z"] = np.nan
-        data.coords["chi"] = np.nan
-        data.coords["theta"] = np.nan
-        data.coords["hv"] = np.nan
+        data.coords["beta"] = 0.0
+        data.coords["alpha"] = 0.0
+        data.coords["psi"] = 0
+        data.coords["x"] = 0.0
+        data.coords["y"] = 0.0
+        data.coords["z"] = 0.0
+        data.coords["chi"] = 0.0
+        data.coords["theta"] = 0.0
+
+        # Transform angles to radiants
+        for deg_to_rad_coord in {
+            "theta",
+            "phi",
+            "beta",
+            "psi"
+        }:
+            for l in [data]:
+                l.coords[deg_to_rad_coord] = l.coords[deg_to_rad_coord] * np.pi / 180
+                if deg_to_rad_coord in l.attrs:
+                    l.attrs[deg_to_rad_coord] = l.attrs[deg_to_rad_coord] * np.pi / 180
 
         data = super().postprocess_final(data, scan_desc)
 
