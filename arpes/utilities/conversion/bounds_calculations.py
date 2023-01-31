@@ -183,7 +183,7 @@ def calculate_kp_kz_bounds(arr: xr.DataArray):
     )
 
 
-def calculate_kp_bounds(arr: xr.DataArray):
+def calculate_kp_bounds(arr: xr.DataArray, workfunction: float):
     """Calculates kp bounds for a single ARPES cut."""
     phi_coords = arr.coords["phi"].values - arr.S.phi_offset
     beta = float(arr.coords["beta"]) - arr.S.beta_offset
@@ -193,7 +193,8 @@ def calculate_kp_bounds(arr: xr.DataArray):
 
     sampled_phi_values = np.array([phi_low, phi_mid, phi_high])
 
-    kinetic_energy = arr.coords["eV"].values.max()
+    photon_energy = arr.coords["hv"].values
+    kinetic_energy = arr.coords["eV"].values.max() + photon_energy - workfunction
     kps = (
         arpes.constants.K_INV_ANGSTROM
         * np.sqrt(kinetic_energy)
@@ -204,7 +205,7 @@ def calculate_kp_bounds(arr: xr.DataArray):
     return round(np.min(kps), 2), round(np.max(kps), 2)
 
 
-def calculate_kx_ky_bounds(arr: xr.DataArray):
+def calculate_kx_ky_bounds(arr: xr.DataArray, workfunction: float):
     """Calculates the kx and ky range for a dataset with a fixed photon energy.
 
     This is used to infer the gridding that should be used for a k-space conversion.
@@ -217,41 +218,42 @@ def calculate_kx_ky_bounds(arr: xr.DataArray):
     Returns:
         ((kx_low, kx_high,), (ky_low, ky_high,))
     """
-    phi_coords, beta_coords = (
+    phi_coords, theta_coords = (
         arr.coords["phi"] - arr.S.phi_offset,
-        arr.coords["beta"] - arr.S.beta_offset,
+        arr.coords["theta"] - arr.S.theta_offset,
     )
 
     # Sample hopefully representatively along the edges
     phi_low, phi_high = np.min(phi_coords), np.max(phi_coords)
-    beta_low, beta_high = np.min(beta_coords), np.max(beta_coords)
+    theta_low, theta_high = np.min(theta_coords), np.max(theta_coords)
     phi_mid = (phi_high + phi_low) / 2
-    beta_mid = (beta_high + beta_low) / 2
+    theta_mid = (theta_high + theta_low) / 2
 
     sampled_phi_values = np.array(
         [phi_high, phi_high, phi_mid, phi_low, phi_low, phi_low, phi_mid, phi_high, phi_high]
     )
-    sampled_beta_values = np.array(
+    sampled_theta_values = np.array(
         [
-            beta_mid,
-            beta_high,
-            beta_high,
-            beta_high,
-            beta_mid,
-            beta_low,
-            beta_low,
-            beta_low,
-            beta_mid,
+            theta_mid,
+            theta_high,
+            theta_high,
+            theta_high,
+            theta_mid,
+            theta_low,
+            theta_low,
+            theta_low,
+            theta_mid,
         ]
     )
-    kinetic_energy = arr.coords["eV"].values.max()
+    photon_energy = arr.coords["hv"].values
+    kinetic_energy = arr.coords["eV"].values.max() + photon_energy - workfunction
 
     kxs = arpes.constants.K_INV_ANGSTROM * np.sqrt(kinetic_energy) * np.sin(sampled_phi_values)
     kys = (
         arpes.constants.K_INV_ANGSTROM
         * np.sqrt(kinetic_energy)
         * np.cos(sampled_phi_values)
-        * np.sin(sampled_beta_values)
+        * np.sin(np.negative(sampled_theta_values))
     )
 
     return (

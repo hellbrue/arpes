@@ -326,6 +326,7 @@ def convert_to_kspace(
     resolution=None,
     calibration=None,
     coords=None,
+    workfunction=0.0,
     allow_chunks: bool = False,
     trace: Callable = None,
     **kwargs,
@@ -427,6 +428,7 @@ def convert_to_kspace(
                 resolution=resolution,
                 calibration=calibration,
                 coords=coords,
+                #workfunction=workfunction,
                 allow_chunks=False,
                 trace=trace,
                 **kwargs,
@@ -482,7 +484,7 @@ def convert_to_kspace(
     converter = convert_cls(arr, converted_dims, calibration=calibration)
 
     trace("Converting coordinates")
-    converted_coordinates = converter.get_coordinates(resolution=resolution, bounds=bounds)
+    converted_coordinates = converter.get_coordinates(resolution=resolution, bounds=bounds, workfunction=workfunction)
 
     if not set(coords.keys()).issubset(converted_coordinates.keys()):
         extra = set(coords.keys()).difference(converted_coordinates.keys())

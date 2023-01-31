@@ -85,7 +85,7 @@ class ConvertKp(CoordinateConverter):
         self.phi = None
 
     def get_coordinates(
-        self, resolution: dict = None, bounds: dict = None
+        self, resolution: dict = None, bounds: dict = None, workfunction: float = 0.0
     ) -> Dict[str, np.ndarray]:
         """Calculates appropriate coordinate bounds."""
         if resolution is None:
@@ -94,7 +94,7 @@ class ConvertKp(CoordinateConverter):
             bounds = {}
 
         coordinates = super().get_coordinates(resolution, bounds=bounds)
-        (kp_low, kp_high) = calculate_kp_bounds(self.arr)
+        (kp_low, kp_high) = calculate_kp_bounds(self.arr, workfunction)
 
         if "kp" in bounds:
             kp_low, kp_high = bounds["kp"]
@@ -220,7 +220,7 @@ class ConvertKxKy(CoordinateConverter):
             )
 
     def get_coordinates(
-        self, resolution: dict = None, bounds: dict = None
+        self, resolution: dict = None, bounds: dict = None, workfunction: float = 0.0
     ) -> Dict[str, np.ndarray]:
         """Calculates appropriate coordinate bounds."""
         if resolution is None:
@@ -230,8 +230,7 @@ class ConvertKxKy(CoordinateConverter):
 
         coordinates = super().get_coordinates(resolution, bounds=bounds)
 
-        ((kx_low, kx_high), (ky_low, ky_high)) = calculate_kx_ky_bounds(self.arr)
-
+        ((kx_low, kx_high), (ky_low, ky_high)) = calculate_kx_ky_bounds(self.arr, workfunction)
         if "kx" in bounds:
             kx_low, kx_high = bounds["kx"]
         if "ky" in bounds:
