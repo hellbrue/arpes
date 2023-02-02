@@ -25,8 +25,7 @@ class SLSUltraEndstation(HemisphericalEndstation, SynchrotronEndstation):
         "Y": "y",
         "Z": "z",
         "Phi": "chi",
-        "Theta": "theta",
-        "Tilt": "beta"
+        "Theta": "theta"
     }
 
     COORDINATES = {
@@ -35,7 +34,6 @@ class SLSUltraEndstation(HemisphericalEndstation, SynchrotronEndstation):
         "Z",
         "Phi",
         "Theta",
-        "Tilt",
         "hv"
     }
 
@@ -109,12 +107,12 @@ class SLSUltraEndstation(HemisphericalEndstation, SynchrotronEndstation):
             dims = ["eV", "phi"]
         # Create xArray of maps etc or 3D scans in general
         elif len(shape) == 3:
-            # Add Tilt axis for FS (3D data) scans
-            tilt_attr = h5_data.attrs['Axis2.Scale']
-            tilt_lims = [tilt_attr[0], tilt_attr[0] + tilt_attr[1] * shape[2]]
-            tilt_axis = np.linspace(*tilt_lims, shape[2])
-            axis_coords = {"eV": e_axis, "phi": y_axis, "tilt": tilt_axis}
-            dims = ["eV", "phi", "tilt"]
+            # Add Tilt or theta in pyarpes conv axis for FS (3D data) scans
+            beta_attr = h5_data.attrs['Axis2.Scale']
+            beta_lims = [beta_attr[0], beta_attr[0] + beta_attr[1] * shape[2]]
+            beta_axis = np.linspace(*beta_lims, shape[2])
+            axis_coords = {"eV": e_axis, "phi": y_axis, "beta": beta_axis}
+            dims = ["eV", "phi", "beta"]
         else:
             axis_coords = {}
             dims = []
@@ -146,17 +144,30 @@ class SLSUltraEndstation(HemisphericalEndstation, SynchrotronEndstation):
 
         # Rename the coordinates as defined above in class
         data = data.rename({k: v for k, v in self.RENAME_COORDS.items() if k in data.coords.keys()})
+        
+        # Add manipulator coordinates (not changeable at SLS)
+        data.coords["alpha"] = 0.0
+        data.coords["psi"] = 0
+        data.attrs['sample_workfunction'] = data.attrs['Work Function (eV)']
+        data.spectrum.attrs['sample_workfunction'] = data.attrs['Work Function (eV)']
 
         # Check if scan was done in E_kin or E_bin reference and transform to E_bin if necessary
         if "eV" in data.coords:
-            workfunction = data.attrs['Work Function (eV)']
+            workfunction = data.attrs['sample_workfunction']
             if data.attrs['Energy Scale'] == "Kinetic":
                 photon_energy = data.coords["hv"]
                 data.coords["eV"] = data.eV + workfunction - photon_energy
 
-        # Add manipulator coordinates (not changeable at SLS)
-        data.coords["alpha"] = np.nan
-        data.coords["psi"] = np.nan
+        for deg_to_rad_coord in {
+            "theta",
+            "phi",
+            "beta",
+            "psi"
+        }:
+            for l in [data]:
+                l.coords[deg_to_rad_coord] = l.coords[deg_to_rad_coord] * np.pi / 180
+                if deg_to_rad_coord in l.attrs:
+                    l.attrs[deg_to_rad_coord] = l.attrs[deg_to_rad_coord] * np.pi / 180
 
         data = super().postprocess_final(data, scan_desc)
         return data
