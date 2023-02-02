@@ -428,7 +428,7 @@ def convert_to_kspace(
                 resolution=resolution,
                 calibration=calibration,
                 coords=coords,
-                #workfunction=workfunction,
+                workfunction=workfunction,
                 allow_chunks=False,
                 trace=trace,
                 **kwargs,

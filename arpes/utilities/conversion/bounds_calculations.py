@@ -194,6 +194,7 @@ def calculate_kp_bounds(arr: xr.DataArray, workfunction: float):
     sampled_phi_values = np.array([phi_low, phi_mid, phi_high])
 
     photon_energy = arr.coords["hv"].values
+    workfunction = arr.S.work_function
     kinetic_energy = arr.coords["eV"].values.max() + photon_energy - workfunction
     kps = (
         arpes.constants.K_INV_ANGSTROM
@@ -218,34 +219,35 @@ def calculate_kx_ky_bounds(arr: xr.DataArray, workfunction: float):
     Returns:
         ((kx_low, kx_high,), (ky_low, ky_high,))
     """
-    phi_coords, theta_coords = (
+    phi_coords, beta_coords = (
         arr.coords["phi"] - arr.S.phi_offset,
-        arr.coords["theta"] - arr.S.theta_offset,
+        arr.coords["beta"] - arr.S.beta_offset,
     )
 
     # Sample hopefully representatively along the edges
     phi_low, phi_high = np.min(phi_coords), np.max(phi_coords)
-    theta_low, theta_high = np.min(theta_coords), np.max(theta_coords)
+    beta_low, beta_high = np.min(beta_coords), np.max(beta_coords)
     phi_mid = (phi_high + phi_low) / 2
-    theta_mid = (theta_high + theta_low) / 2
+    beta_mid = (beta_high + beta_low) / 2
 
     sampled_phi_values = np.array(
         [phi_high, phi_high, phi_mid, phi_low, phi_low, phi_low, phi_mid, phi_high, phi_high]
     )
-    sampled_theta_values = np.array(
+    sampled_beta_values = np.array(
         [
-            theta_mid,
-            theta_high,
-            theta_high,
-            theta_high,
-            theta_mid,
-            theta_low,
-            theta_low,
-            theta_low,
-            theta_mid,
+            beta_mid,
+            beta_high,
+            beta_high,
+            beta_high,
+            beta_mid,
+            beta_low,
+            beta_low,
+            beta_low,
+            beta_mid,
         ]
     )
     photon_energy = arr.coords["hv"].values
+    workfunction = arr.S.work_function
     kinetic_energy = arr.coords["eV"].values.max() + photon_energy - workfunction
 
     kxs = arpes.constants.K_INV_ANGSTROM * np.sqrt(kinetic_energy) * np.sin(sampled_phi_values)
@@ -253,7 +255,7 @@ def calculate_kx_ky_bounds(arr: xr.DataArray, workfunction: float):
         arpes.constants.K_INV_ANGSTROM
         * np.sqrt(kinetic_energy)
         * np.cos(sampled_phi_values)
-        * np.sin(np.negative(sampled_theta_values))
+        * np.sin(sampled_beta_values)
     )
 
     return (
