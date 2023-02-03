@@ -147,6 +147,9 @@ def orthorhombic_cell(a=1, b=1, c=1):
     """Lattice constants for an orthorhombic unit cell."""
     return [[a, 0, 0], [0, b, 0], [0, 0, c]]
 
+def orthorhombic_cell_2d(a=1, b=1):
+    """Lattice constants of a 2D orthorombic unit cell"""
+    return [[a, 0], [0, b]]
 
 def hex_cell(a=1, c=1):
     """Calculates lattice vectors for a triangular lattice with lattice constants `a` and `c`."""

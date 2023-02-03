@@ -19,11 +19,13 @@ import functools
 import numpy as np
 import pathlib
 
-from arpes.utilities.bz import hex_cell_2d, as_2d
+from arpes.utilities.bz import hex_cell_2d, as_2d, orthorhombic_cell_2d
 
 A_GRAPHENE = 2.46 / (2 * np.pi)
 A_WS2 = 3.15 / (2 * np.pi)
 A_WSe2 = 3.297 / (2 * np.pi)
+A_Bi2212 = 5.414 / (2 * np.pi)
+B_Bi2212 = 5.418 / (2 * np.pi)
 
 
 def bz_points_for_hexagonal_lattice(a=1):
@@ -31,6 +33,19 @@ def bz_points_for_hexagonal_lattice(a=1):
     from ase.dft.bz import bz_vertices
 
     cell = hex_cell_2d(a)
+    cell = [list(c) + [0] for c in cell] + [[0, 0, 1]]
+    icell = np.linalg.inv(cell).T
+    bz_vertices = bz_vertices(icell)
+
+    # get the first face which has six points, this is the top or bottom
+    # face of the cell
+    return as_2d(bz_vertices[[len(face[0]) for face in bz_vertices].index(6)][0])
+
+def bz_points_for_orthorombic_lattice(a=1, b=1):
+    """Calculates the Brillouin zone corners for a triangular (colloq. hexagona) lattice."""
+    from ase.dft.bz import bz_vertices
+
+    cell = orthorhombic_cell_2d(a, b)
     cell = [list(c) + [0] for c in cell] + [[0, 0, 1]]
     icell = np.linalg.inv(cell).T
     bz_vertices = bz_vertices(icell)
@@ -104,6 +119,7 @@ SURFACE_ZONE_DEFINITIONS = {  # : Dict[str, Dict[str, any]]
         "name": "Bi_2Sr_2CaCu_2O_{8+x}",
         "work_function": None,
         "inner_potential": None,
+        "bz_points": functools.partial(bz_points_for_orthorombic_lattice, a=A_Bi2212, b=B_Bi2212),
         "image": image_for("cuprate-bz.png"),
         "image_waypoints": [
             [],
