@@ -78,8 +78,13 @@ class LACUSEndstation(HemisphericalEndstation, SingleFileEndstation):
         data.coords["z"] = 0.0
         data.coords["chi"] = 0.0
         data.coords["theta"] = 0.0
-        data.attrs['sample_workfunction'] = data.attrs['Work Function (eV)']
-        data.spectrum.attrs['sample_workfunction'] = data.attrs['Work Function (eV)']
+        # Implementing if clause for files converted with old system
+        if 'WorkFunction' in data.attrs:
+            data.attrs['sample_workfunction'] = data.attrs['WorkFunction']
+            data.spectrum.attrs['sample_workfunction'] = data.attrs['WorkFunction']
+        elif 'Work Function (eV)' in data.attrs:
+            data.attrs['sample_workfunction'] = data.attrs['Work Function (eV)']
+            data.spectrum.attrs['sample_workfunction'] = data.attrs['Work Function (eV)']
 
         # Check if scan was done in E_kin or E_bin reference and transform to E_bin if necessary
         if "eV" in data.coords:
