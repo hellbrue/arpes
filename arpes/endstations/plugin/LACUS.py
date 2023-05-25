@@ -85,6 +85,9 @@ class LACUSEndstation(HemisphericalEndstation, SingleFileEndstation):
         elif 'Work Function (eV)' in data.attrs:
             data.attrs['sample_workfunction'] = data.attrs['Work Function (eV)']
             data.spectrum.attrs['sample_workfunction'] = data.attrs['Work Function (eV)']
+        else:
+            data.attrs['sample_workfunction'] = 4.2
+            data.spectrum.attrs['sample_workfunction'] = 4.2
 
         # Check if scan was done in E_kin or E_bin reference and transform to E_bin if necessary
         if "eV" in data.coords:
