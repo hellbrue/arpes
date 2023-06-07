@@ -5,6 +5,7 @@ from lmfit.models import GaussianModel
 import xarray as xr
 import lmfit as lf
 import numpy as np
+import scipy
 
 __all__ = ["XModelMixin", "gaussian_convolve"]
 
@@ -64,7 +65,6 @@ class XModelMixin(lf.Model):
                 len(data.dims) == 1
                 and "You cannot transpose (invert) a multidimensional array (scalar field)."
             )
-
         coord_values = {}
         if "x" in kwargs:
             coord_values["x"] = kwargs.pop("x")
@@ -105,7 +105,6 @@ class XModelMixin(lf.Model):
 
                 coord_values = {k: v.values for k, v in data.coords.items() if k in new_dim_order}
                 real_data, flat_data = data.values, data.values.ravel()
-
         real_weights = weights
         if isinstance(weights, xr.DataArray):
             if self.n_dims == 1:
@@ -115,13 +114,11 @@ class XModelMixin(lf.Model):
                     real_weights = weights.transpose(*new_dim_order).values.ravel()
                 else:
                     real_weights = weights.values.ravel()
-
         if transpose:
             cached_coordinate = list(coord_values.values())[0]
             coord_values[list(coord_values.keys())[0]] = real_data
             real_data = cached_coordinate
             flat_data = real_data
-
         if guess:
             guessed_params = self.guess(real_data, **coord_values)
         else:
@@ -136,7 +133,6 @@ class XModelMixin(lf.Model):
                         guessed_params[k].set(**v)
 
             guessed_params.update(params)
-
         result = None
         try:
             result = super().fit(
@@ -235,6 +231,40 @@ class XConvolutionCompositeModel(lf.CompositeModel, XModelMixin):
             pars[k] = v
 
         return pars
+    
+    def convolve(arr, kernel, arr_model=None, kernel_model=None, params=None, **kwargs):
+        """Simple convolution of two arrays."""
+        # Build interpolation from x values, min to max with stepsize equal to min stepsize
+        low_lim , high_lim = kwargs['x'][0], kwargs['x'][-1]
+        min_step = min(kwargs['x'][i+1] - kwargs['x'][i] for i in range(len(kwargs['x'])-1))
+        min_step = min(10, min_step)
+        max_val = max(abs(low_lim), abs(high_lim))
+        # interp_values = np.arange(low_lim, high_lim+min_step, min_step)
+        interp_values = np.arange(-max_val, max_val+min_step, min_step)
+
+        # Build interpolated models, make sure that conv_x contains elements of x, remove double entries and sort
+        conv_x = np.unique(np.sort(np.concatenate((interp_values, kwargs['x']))))
+        # conv_arr = np.interp(conv_x, kwargs['x'], arr)
+        # conv_kernel = np.interp(conv_x, kwargs['x'], kernel)
+        interp_arr = arr_model.eval(params, x=conv_x)
+        interp_kernel = kernel_model.eval(params, x=conv_x)
+        norm_kernel = interp_kernel / np.sum(interp_kernel)
+
+        # Create padding for convolution
+        npts = 2*max(arr.size, kernel.size)
+        pad = np.ones(npts)
+        # tmp = np.concatenate((pad*conv_arr[0], conv_arr, pad*conv_arr[-1]))
+        tmp = np.concatenate((pad*interp_arr[0], interp_arr, pad*interp_arr[-1]))
+
+        # Convolve and remove padding, use mode same to keep same length as input
+        # out = scipy.signal.fftconvolve(tmp, conv_kernel, mode='same')
+        out = scipy.signal.fftconvolve(tmp, norm_kernel, mode='same')
+        out = out[npts:-npts]
+
+        # Filter output to only contain values at x (remove interpolated values, not sure if necessary)
+        indices = np.where(np.isin(conv_x, kwargs['x']))
+        filtered_out = out[indices]
+        return filtered_out
 
 
 def gaussian_convolve(model_instance):
