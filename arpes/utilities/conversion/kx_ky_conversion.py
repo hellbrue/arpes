@@ -395,7 +395,7 @@ class ConvertKxKy(CoordinateConverter):
             offset = self.arr.S.beta_offset + self.arr.S.lookup_offset_coord(
                 self.parallel_angles[1]
             )
-            _exact_arcsin(ky, kx, self.k_tot, self.perp_angle, offset, par_tot, True)
+            _exact_arcsin(ky, kx, self.k_tot, self.perp_angle, offset, par_tot, False)
         elif scan_angle == "theta":
             offset = self.arr.S.theta_offset - self.arr.S.lookup_offset_coord(
                 self.parallel_angles[1]

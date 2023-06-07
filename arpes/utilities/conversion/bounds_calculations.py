@@ -250,7 +250,7 @@ def calculate_kx_ky_bounds(arr: xr.DataArray, workfunction: float):
     workfunction = arr.S.work_function
     kinetic_energy = arr.coords["eV"].values.max() + photon_energy - workfunction
 
-    kxs = arpes.constants.K_INV_ANGSTROM * np.sqrt(kinetic_energy) * np.sin(sampled_phi_values)
+    kxs = arpes.constants.K_INV_ANGSTROM * np.sqrt(kinetic_energy) * np.sin(sampled_phi_values) * np.cos(sampled_beta_values)
     kys = (
         arpes.constants.K_INV_ANGSTROM
         * np.sqrt(kinetic_energy)
