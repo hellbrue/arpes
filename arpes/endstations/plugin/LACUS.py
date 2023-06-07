@@ -28,21 +28,29 @@ class LACUSEndstation(HemisphericalEndstation, SingleFileEndstation):
     RENAME_COORDS = {
         "Angle" : "phi",
         "Ekin" : "eV",
-        # "X": "x",
-        # "Y": "y",
-        # "Z": "z",
-        # "Phi": "chi",
-        # "Theta" : "theta"
+        "X": "x",
+        "Y": "y",
+        "Z": "z",
+        "Phi": "chi",
+        "Theta" : "theta",
+        "yRotation" : "beta",
+        "Psi" : "psi",
+        "Alpha" : "alpha"
     }
 
     COORDINATES = {
         "Angle",
         "Ekin",
-        # "X",
-        # "Y",
-        # "Z",
-        # "Phi",
-        # "Theta"
+        "yRotation",
+        "delay",
+        "X",
+        "Y",
+        "Z",
+        "Phi",
+        "Theta",
+        "hv",
+        "Psi",
+        "Alpha"
     }
 
     def print_m(self, *messages):
@@ -66,19 +74,11 @@ class LACUSEndstation(HemisphericalEndstation, SingleFileEndstation):
     def postprocess_final(self, data: xr.Dataset, scan_desc: dict = None):
         """Perform final changes to convention and conversions for data taken at LACUS
         """
+        # Add coordinates with default values if not in dataset
+        data = data.assign_coords({k : 0.0 for k in self.COORDINATES if k not in data.coords.keys()})
         # Rename the coordinates as defined above in class
         data = data.rename({k: v for k, v in self.RENAME_COORDS.items() if k in data.coords.keys()})
 
-        # Add manipulator coordinates (no access yet)
-        data.coords["beta"] = 0.0
-        data.coords["alpha"] = 0.0
-        data.coords["psi"] = 0
-        data.coords["x"] = 0.0
-        data.coords["y"] = 0.0
-        data.coords["z"] = 0.0
-        data.coords["chi"] = 0.0
-        data.coords["theta"] = 0.0
-        # Implementing if clause for files converted with old system
         if 'WorkFunction' in data.attrs:
             data.attrs['sample_workfunction'] = data.attrs['WorkFunction']
             data.spectrum.attrs['sample_workfunction'] = data.attrs['WorkFunction']
@@ -86,8 +86,8 @@ class LACUSEndstation(HemisphericalEndstation, SingleFileEndstation):
             data.attrs['sample_workfunction'] = data.attrs['Work Function (eV)']
             data.spectrum.attrs['sample_workfunction'] = data.attrs['Work Function (eV)']
         else:
-            data.attrs['sample_workfunction'] = 4.2
-            data.spectrum.attrs['sample_workfunction'] = 4.2
+            data.attrs['sample_workfunction'] = 4.3
+            data.spectrum.attrs['sample_workfunction'] = 4.3
 
         # Check if scan was done in E_kin or E_bin reference and transform to E_bin if necessary
         if "eV" in data.coords:
