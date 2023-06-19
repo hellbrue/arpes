@@ -35,13 +35,15 @@ class LACUSEndstation(HemisphericalEndstation, SingleFileEndstation):
         "Theta" : "theta",
         "yRotation" : "beta",
         "Psi" : "psi",
-        "Alpha" : "alpha"
+        "Alpha" : "alpha",
+        "Pumppower" : "fluence"
     }
 
     COORDINATES = {
         "Angle",
         "Ekin",
         "yRotation",
+        "Pumppower",
         "delay",
         "X",
         "Y",

@@ -39,6 +39,7 @@ def is_dimension_unconvertible(dimension_name: str) -> bool:
         "x",
         "y",
         "optics_insertion",
+        "fluence",
     ]:
         return True
 
