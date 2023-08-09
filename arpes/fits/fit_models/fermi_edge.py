@@ -39,7 +39,7 @@ class AffineBroadenedFD(XModelMixin):
 
     @staticmethod
     def affine_broadened_fd(
-        x, fd_center=0, fd_width=0.003, conv_width=0.02, const_bkg=1, lin_bkg=0, offset=0
+        x, fd_center=0, fd_width=0.003, conv_width=0.02, const_bkg=1, lin_bkg=0, offset=0, line=0, bkg=0
     ):
         """Fermi function convoled with a Gaussian together with affine background.
 
@@ -54,7 +54,7 @@ class AffineBroadenedFD(XModelMixin):
         """
         dx = x - fd_center
         x_scaling = x[1] - x[0]
-        fermi = 1 / (np.exp(dx / fd_width) + 1)
+        fermi = (line*x + bkg) / (np.exp(dx / fd_width) + 1)
         return (
             gaussian_filter((const_bkg + lin_bkg * dx) * fermi, sigma=conv_width / x_scaling)
             + offset
