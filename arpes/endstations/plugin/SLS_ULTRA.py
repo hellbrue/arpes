@@ -147,7 +147,7 @@ class SLSUltraEndstation(HemisphericalEndstation, SynchrotronEndstation):
         
         # Add manipulator coordinates (not changeable at SLS)
         data.coords["alpha"] = 0.0
-        data.coords["psi"] = 0
+        data.coords["psi"] = 0.0
         if "beta" not in data.coords:
             data.coords["beta"] = data.coords["theta"]
         data.attrs['sample_workfunction'] = data.attrs['Work Function (eV)']
@@ -170,6 +170,9 @@ class SLSUltraEndstation(HemisphericalEndstation, SynchrotronEndstation):
                 l.coords[deg_to_rad_coord] = l.coords[deg_to_rad_coord] * np.pi / 180
                 if deg_to_rad_coord in l.attrs:
                     l.attrs[deg_to_rad_coord] = l.attrs[deg_to_rad_coord] * np.pi / 180
+
+        if "theta" in data.coords:
+            data.spectrum.attrs["theta_offset"] = data.coords["theta"].values.ravel()[0]
 
         data = super().postprocess_final(data, scan_desc)
         return data
